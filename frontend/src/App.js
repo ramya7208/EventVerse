@@ -1,33 +1,51 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
 
+// Pages
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import UserDashboard from "./pages/UserDashboard";
 import EventDetails from "./pages/EventDetails";
 
+// Sections
+import Colleges from "./pages/sections/Colleges";
+import Hackathons from "./pages/sections/Hackathons";
+import Workshops from "./pages/sections/Workshops";
+import Webinars from "./pages/sections/Webinars";
+import Support from "./pages/sections/Support";
+
+// Details Page
+import CollegeDetails from "./pages/CollegeDetails";
+
+// Components
+import Navbar from "./components/Navbar";
+
 function App() {
   return (
     <Router>
-
-      {/* Navbar */}
       <Navbar />
 
-      {/* Main Content (pushed below navbar) */}
-      <div className="pt-20 bg-gray-50 min-h-screen">
+      <Routes>
+        {/* Main Pages */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<UserDashboard />} />
 
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/dashboard" element={<UserDashboard />} />
-          <Route path="/event" element={<EventDetails />} />
-        </Routes>
+        {/* 🔥 FIXED ORDER */}
+        <Route path="/colleges/:id" element={<CollegeDetails />} />
+        <Route path="/colleges" element={<Colleges />} />
 
-      </div>
+        {/* Other Sections */}
+        <Route path="/hackathons" element={<Hackathons />} />
+        <Route path="/workshops" element={<Workshops />} />
+        <Route path="/webinars" element={<Webinars />} />
+        <Route path="/support" element={<Support />} />
 
+        {/* Event Details */}
+        <Route path="/event/:id" element={<EventDetails />} />
+      </Routes>
     </Router>
   );
 }
