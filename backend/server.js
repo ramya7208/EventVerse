@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 
-dotenv.config();
+require("dotenv").config();
 
 const app = express();
 
@@ -27,11 +27,23 @@ app.get("/", (req, res) => {
 
 // DB connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected ✅"))
-  .catch(err => console.log(err));
+  .then(() => {
+    console.log("MongoDB Connected ✅");
+  })
+  .catch((err) => {
+    console.log("MongoDB Error:", err);
+  });
+
+// Error handler
+app.use((err, req, res, next) => {
+  res.status(500).json({
+    message: "Something went wrong",
+    error: err.message
+  });
+});
 
 // Start server
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
