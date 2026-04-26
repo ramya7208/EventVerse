@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import axios from "axios";
 const ROLES = [
   { key: "student",      label: "Student",       icon: "🎓" },
   { key: "collegeadmin", label: "College Admin",  icon: "🏫" },
@@ -43,36 +43,28 @@ export default function Login() {
   }
 
   try {
-    const res = await fetch("http://localhost:5000/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
+    const res = await axios.post(
+      "http://localhost:5000/api/auth/login",
+      {
         email: formData.email,
-        password: formData.password
-      })
-    });
+        password: formData.password,
+      }
+    );
 
-    const data = await res.json();
+    // ✅ store token
+    localStorage.setItem("token", res.data.token);
 
-    if (res.ok) {
-      // ✅ store token
-      localStorage.setItem("token", data.token);
+    // ✅ store user
+    localStorage.setItem("user", JSON.stringify(res.data.user));
 
-      // ✅ store user (optional)
-      localStorage.setItem("user", JSON.stringify(data.user));
+    console.log("LOGIN SUCCESS:", res.data);
 
-      // ✅ navigate
-      navigate("/dashboard");
-
-    } else {
-      setError(data.message);
-    }
+    // ✅ go to dashboard
+    navigate("/dashboard");
 
   } catch (err) {
-    console.log(err);
-    setError("Something went wrong");
+    console.error(err);
+    setError(err.response?.data?.message || "Login failed");
   }
 };
 
