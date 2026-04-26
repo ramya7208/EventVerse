@@ -24,7 +24,7 @@ export default function Login() {
     setError("");
   };
 
-  const handleSubmit = (e) => {
+  /*const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
       setError("Please fill in all fields.");
@@ -33,7 +33,48 @@ export default function Login() {
     // TODO: replace with real API call
     localStorage.setItem("user", JSON.stringify({ ...formData, role, name: formData.email.split("@")[0] }));
     navigate("/dashboard");
-  };
+  };*/
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!formData.email || !formData.password) {
+    setError("Please fill in all fields.");
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      // ✅ store token
+      localStorage.setItem("token", data.token);
+
+      // ✅ store user (optional)
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // ✅ navigate
+      navigate("/dashboard");
+
+    } else {
+      setError(data.message);
+    }
+
+  } catch (err) {
+    console.log(err);
+    setError("Something went wrong");
+  }
+};
 
   const roleColors = {
     student:      { active: "bg-blue-600 text-white",   ring: "focus:ring-blue-500",   btn: "bg-blue-600 hover:bg-blue-700",   left: "from-blue-600 to-indigo-700"   },

@@ -2,10 +2,20 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
+const verifyToken = require("../middleware/authMiddleware");//newly added
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
+// GET USER PROFILE(newly addeed)
+router.get("/profile", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
 
+    res.json(user);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
