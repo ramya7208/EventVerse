@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import axios from "axios";
 const ROLES = [
   { key: "student",      label: "Student",       icon: "🎓" },
   { key: "collegeadmin", label: "College Admin",  icon: "🏫" },
@@ -24,7 +24,7 @@ export default function Login() {
     setError("");
   };
 
-  const handleSubmit = (e) => {
+  /*const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
       setError("Please fill in all fields.");
@@ -33,7 +33,40 @@ export default function Login() {
     // TODO: replace with real API call
     localStorage.setItem("user", JSON.stringify({ ...formData, role, name: formData.email.split("@")[0] }));
     navigate("/dashboard");
-  };
+  };*/
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!formData.email || !formData.password) {
+    setError("Please fill in all fields.");
+    return;
+  }
+
+  try {
+    const res = await axios.post(
+      "http://localhost:5000/api/auth/login",
+      {
+        email: formData.email,
+        password: formData.password,
+      }
+    );
+
+    // ✅ store token
+    localStorage.setItem("token", res.data.token);
+
+    // ✅ store user
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+
+    console.log("LOGIN SUCCESS:", res.data);
+
+    // ✅ go to dashboard
+    navigate("/dashboard");
+
+  } catch (err) {
+    console.error(err);
+    setError(err.response?.data?.message || "Login failed");
+  }
+};
 
   const roleColors = {
     student:      { active: "bg-blue-600 text-white",   ring: "focus:ring-blue-500",   btn: "bg-blue-600 hover:bg-blue-700",   left: "from-blue-600 to-indigo-700"   },

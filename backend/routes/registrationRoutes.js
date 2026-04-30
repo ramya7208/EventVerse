@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const Registration = require("../models/Registration");
+const Event = require("../models/Event");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // 🔥 Register for an event
@@ -10,7 +11,13 @@ router.post("/register/:eventId", authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const eventId = req.params.eventId;
 
-    // 🚫 Prevent duplicate registration
+    // check event exists
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // prevent duplicate
     const existing = await Registration.findOne({
       user: userId,
       event: eventId
@@ -20,7 +27,6 @@ router.post("/register/:eventId", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Already registered" });
     }
 
-    // ✅ Create registration
     const newRegistration = new Registration({
       user: userId,
       event: eventId
@@ -28,16 +34,17 @@ router.post("/register/:eventId", authMiddleware, async (req, res) => {
 
     await newRegistration.save();
 
-    res.json({ message: "Registered successfully" });
+    res.json({
+      message: "Registered successfully",
+      registration: newRegistration
+    });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message });
   }
 });
 
-
-// 🔥 Get all events registered by logged-in user
+// 🔥 Get user's registered events
 router.get("/my", authMiddleware, async (req, res) => {
   try {
     const registrations = await Registration.find({
@@ -47,11 +54,8 @@ router.get("/my", authMiddleware, async (req, res) => {
     res.json(registrations);
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message });
   }
 });
 
-
-// ⚠️ VERY IMPORTANT
 module.exports = router;

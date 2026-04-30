@@ -2,14 +2,29 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
+const verifyToken = require("../middleware/authMiddleware");//newly added
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
+// GET USER PROFILE(newly addeed)
+router.get("/profile", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
 
+    res.json(user);
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    // validation
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -26,10 +41,20 @@ router.post("/register", async (req, res) => {
 
     await newUser.save();
 
-    res.json({ message: "User registered successfully" });
+    // optional token after register
+    const token = jwt.sign(
+      { id: newUser._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "User registered successfully",
+      token
+    });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -37,6 +62,11 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // validation
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -63,7 +93,7 @@ router.post("/login", async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: error.message });
   }
 });
 

@@ -7,7 +7,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import axios from "axios";
 export default function Register() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -47,14 +47,31 @@ export default function Register() {
     setStep(2);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const errs = validateStep2();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    localStorage.setItem("user", JSON.stringify({ ...form }));
-    setSubmitted(true);
-    setTimeout(() => navigate("/dashboard"), 2000);
-  };
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const res = await axios.post(
+      "http://localhost:5000/api/auth/register",
+      {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      }
+    );
+
+    console.log("REGISTER SUCCESS:", res.data);
+
+    localStorage.setItem("token", res.data.token);
+
+    alert("Registered successfully ✅");
+    navigate("/login");
+
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.message || "Registration failed");
+  }
+};
 
   const inputClass = "w-full p-3.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition";
 
