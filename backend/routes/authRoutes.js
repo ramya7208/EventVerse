@@ -19,24 +19,45 @@ router.get("/profile", verifyToken, async (req, res) => {
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, college, branch, year, phone } = req.body;
 
     // validation
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const existingUser = await User.findOne({ email });
+    // Validate name
+    if (name.trim().length < 2) {
+      return res.status(400).json({ message: "Name must be at least 2 characters long" });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address" });
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: "Email already registered. Please login or use a different email" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
-      name,
-      email,
-      password: hashedPassword
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      role: role || "student",
+      college: college ? college.trim() : null,
+      branch: branch ? branch.trim() : null,
+      year: year ? year.trim() : null,
+      phone: phone ? phone.trim() : null
     });
 
     await newUser.save();
@@ -50,11 +71,19 @@ router.post("/register", async (req, res) => {
 
     res.json({
       message: "User registered successfully",
-      token
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        college: newUser.college
+      }
     });
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Registration error:", error);
+    res.status(500).json({ message: "Registration failed. Please try again later." });
   }
 });
 
@@ -87,8 +116,14 @@ router.post("/login", async (req, res) => {
     res.json({
       token,
       user: {
+        id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email,
+        role: user.role,
+        college: user.college,
+        branch: user.branch,
+        year: user.year,
+        phone: user.phone
       }
     });
 

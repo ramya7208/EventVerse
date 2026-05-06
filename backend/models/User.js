@@ -16,6 +16,27 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
+  },
+  role: {
+    type: String,
+    enum: ["student", "collegeAdmin", "superAdmin"],
+    default: "student"
+  },
+  college: {
+    type: String,
+    trim: true
+  },
+  branch: {
+    type: String,
+    trim: true
+  },
+  year: {
+    type: String,
+    trim: true
+  },
+  phone: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true
