@@ -46,18 +46,38 @@ export default function Login() {
     setError("");
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.email || !formData.password) {
-      setError("Please fill in all fields.");
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!formData.email || !formData.password) {
+    setError("Please fill in all fields.");
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.message || "Login failed");
       return;
     }
-    localStorage.setItem("user", JSON.stringify({
-      ...formData,
-      role,
-      name: formData.email.split("@")[0],
-    }));
 
+    // store token + user
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    // navigate after successful login only
     if (from) {
       navigate(from, { replace: true });
     } else if (role === "collegeadmin") {
@@ -67,7 +87,11 @@ export default function Login() {
     } else {
       navigate("/dashboard");
     }
-  };
+
+  } catch (error) {
+    setError("Server error. Try again.");
+  }
+};
 
   const COLORS = {
     student:      { active: "bg-blue-600 text-white",   ring: "focus:ring-blue-500",   btn: "bg-blue-600 hover:bg-blue-700",     left: "from-blue-600 to-indigo-700"    },
