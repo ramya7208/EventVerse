@@ -72,6 +72,10 @@ export default function Login() {
       setError(data.message || "Login failed");
       return;
     }
+    if (data.user.role !== role) {
+  setError(`This account is registered as ${data.user.role}`);
+  return;
+}
 
     // store token + user
     localStorage.setItem("token", data.token);

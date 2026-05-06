@@ -19,7 +19,7 @@ router.get("/profile", verifyToken, async (req, res) => {
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // validation
     if (!name || !email || !password) {
@@ -33,11 +33,14 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = new User({
-      name,
-      email,
-      password: hashedPassword
-    });
+    
+
+const newUser = new User({
+  name,
+  email,
+  password: hashedPassword,
+  role
+});
 
     await newUser.save();
 
@@ -85,12 +88,13 @@ router.post("/login", async (req, res) => {
     );
 
     res.json({
-      token,
-      user: {
-        name: user.name,
-        email: user.email
-      }
-    });
+  token,
+  user: {
+    name: user.name,
+    email: user.email,
+    role: user.role
+  }
+});
 
   } catch (error) {
     res.status(500).json({ message: error.message });
