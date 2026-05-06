@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
+<<<<<<< HEAD
     enum: ["student", "collegeAdmin", "superAdmin"],
     default: "student"
   },
@@ -37,6 +38,9 @@ const userSchema = new mongoose.Schema({
   phone: {
     type: String,
     trim: true
+=======
+    default: "student"
+>>>>>>> fd6887ba61dd48284d9398957ad68026b9ae55c4
   }
 }, {
   timestamps: true

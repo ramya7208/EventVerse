@@ -19,7 +19,11 @@ router.get("/profile", verifyToken, async (req, res) => {
 // ✅ REGISTER
 router.post("/register", async (req, res) => {
   try {
+<<<<<<< HEAD
     const { name, email, password, role, college, branch, year, phone } = req.body;
+=======
+    const { name, email, password, role } = req.body;
+>>>>>>> fd6887ba61dd48284d9398957ad68026b9ae55c4
 
     // validation
     if (!name || !email || !password) {
@@ -49,6 +53,7 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+<<<<<<< HEAD
     const newUser = new User({
       name: name.trim(),
       email: email.toLowerCase().trim(),
@@ -59,6 +64,16 @@ router.post("/register", async (req, res) => {
       year: year ? year.trim() : null,
       phone: phone ? phone.trim() : null
     });
+=======
+    
+
+const newUser = new User({
+  name,
+  email,
+  password: hashedPassword,
+  role
+});
+>>>>>>> fd6887ba61dd48284d9398957ad68026b9ae55c4
 
     await newUser.save();
 
@@ -114,6 +129,7 @@ router.post("/login", async (req, res) => {
     );
 
     res.json({
+<<<<<<< HEAD
       token,
       user: {
         id: user._id,
@@ -126,6 +142,15 @@ router.post("/login", async (req, res) => {
         phone: user.phone
       }
     });
+=======
+  token,
+  user: {
+    name: user.name,
+    email: user.email,
+    role: user.role
+  }
+});
+>>>>>>> fd6887ba61dd48284d9398957ad68026b9ae55c4
 
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -51,14 +51,45 @@ export default function Register() {
     setStep(2);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const errs = validateStep2();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    localStorage.setItem("user", JSON.stringify({ ...form }));
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  const errs = validateStep2();
+  if (Object.keys(errs).length > 0) {
+    setErrors(errs);
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:5000/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+  name: form.name,
+  email: form.email,
+  password: form.password,
+  role: form.role
+}),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setErrors({ api: data.message || "Registration failed" });
+      return;
+    }
+
+    localStorage.setItem("token", data.token);
+
     setDone(true);
-    setTimeout(() => navigate("/dashboard"), 2000);
-  };
+    setTimeout(() => navigate("/login"), 2000);
+
+  } catch (error) {
+    setErrors({ api: "Server error. Try again." });
+  }
+};
 
   const inp = "w-full p-3.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition";
 
