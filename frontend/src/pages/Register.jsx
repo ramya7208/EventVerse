@@ -1,13 +1,14 @@
 // ============================================================
 // FILE: src/pages/Register.jsx
 // ACTION: REPLACE existing Register.jsx
-// CASE 3 FIX: Clear previous user data on mount, blank form always
+// FIX: Works without backend — saves user to localStorage
+//      When backend is ready, just swap the handleSubmit section
 // ============================================================
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Register() {
-  const navigate = useNavigate();
+  const navigate    = useNavigate();
   const [step, setStep]     = useState(1);
   const [done, setDone]     = useState(false);
   const [errors, setErrors] = useState({});
@@ -16,7 +17,7 @@ export default function Register() {
     college: "", branch: "", year: "", phone: "", role: "student",
   });
 
-  // ✅ CASE 3 FIX: Always start with blank form — remove old user
+  // Clear any old user data on mount
   useEffect(() => {
     localStorage.removeItem("user");
   }, []);
@@ -28,9 +29,9 @@ export default function Register() {
 
   const validateStep1 = () => {
     const e = {};
-    if (!form.name.trim())     e.name     = "Full name is required";
-    if (!form.email.trim())    e.email    = "Email is required";
-    if (!form.password)        e.password = "Password is required";
+    if (!form.name.trim())  e.name  = "Full name is required";
+    if (!form.email.trim()) e.email = "Email is required";
+    if (!form.password)     e.password = "Password is required";
     if (form.password !== form.confirmPassword)
       e.confirmPassword = "Passwords do not match";
     return e;
@@ -52,44 +53,57 @@ export default function Register() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
+    const errs = validateStep2();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
-  const errs = validateStep2();
-  if (Object.keys(errs).length > 0) {
-    setErrors(errs);
-    return;
-  }
+    // ── OPTION A: localStorage only (no backend needed) ──────
+    // Saves user to localStorage and navigates to dashboard
+    const userData = {
+      name:    form.name,
+      email:   form.email,
+      college: form.college,
+      branch:  form.branch,
+      year:    form.year,
+      phone:   form.phone,
+      role:    form.role,
+    };
+    localStorage.setItem("user", JSON.stringify(userData));
 
-  try {
-    const response = await fetch("http://localhost:5000/api/auth/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-  name: form.name,
-  email: form.email,
-  password: form.password,
-  role: form.role
-}),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setErrors({ api: data.message || "Registration failed" });
-      return;
+    // Also save to a "registered users" list so login can verify
+    const existingUsers = JSON.parse(localStorage.getItem("ev_users") || "[]");
+    const alreadyExists = existingUsers.find(u => u.email === form.email);
+    if (!alreadyExists) {
+      existingUsers.push({ ...userData, password: form.password });
+      localStorage.setItem("ev_users", JSON.stringify(existingUsers));
     }
 
-    localStorage.setItem("token", data.token);
-
     setDone(true);
-    setTimeout(() => navigate("/login"), 2000);
+    setTimeout(() => {
+      if (form.role === "collegeadmin") navigate("/admin");
+      else navigate("/dashboard");
+    }, 1800);
 
-  } catch (error) {
-    setErrors({ api: "Server error. Try again." });
-  }
-};
+    // ── OPTION B: With backend (uncomment when backend is ready) ──
+    // try {
+    //   const res = await fetch("http://localhost:5000/api/auth/register", {
+    //     method:  "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body:    JSON.stringify({
+    //       name:     form.name,
+    //       email:    form.email,
+    //       password: form.password,
+    //     }),
+    //   });
+    //   const data = await res.json();
+    //   if (!res.ok) { setErrors({ email: data.message }); return; }
+    //   localStorage.setItem("user", JSON.stringify({ name: form.name, email: form.email, role: form.role }));
+    //   setDone(true);
+    //   setTimeout(() => navigate("/dashboard"), 1800);
+    // } catch (err) {
+    //   setErrors({ email: "Cannot connect to server. Is backend running?" });
+    // }
+  };
 
   const inp = "w-full p-3.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition";
 
@@ -99,7 +113,7 @@ export default function Register() {
         <div className="text-center">
           <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-4xl mx-auto mb-6">🎉</div>
           <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Welcome to EventVerse!</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Taking you to your dashboard...</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Account created! Taking you to your dashboard...</p>
         </div>
       </div>
     );
@@ -124,12 +138,12 @@ export default function Register() {
             <span className="text-white text-xl font-black">EventVerse</span>
           </div>
           <h2 className="text-4xl font-black text-white leading-tight mb-4">
-            Join thousands of<br />students already<br />on EventVerse
+            Join thousands of<br />students on<br />EventVerse
           </h2>
-          <p className="text-blue-200 text-base leading-relaxed mb-10">
+          <p className="text-blue-200 text-base leading-relaxed mb-8">
             Discover hackathons, workshops and events from top colleges near you.
           </p>
-          {["Free to join, always","Events from 8+ colleges","One-click registration","Rate and review events"].map(f => (
+          {["Free to join, always","Events from 8+ colleges","One-click registration","Earn points & badges"].map(f => (
             <div key={f} className="flex items-center gap-3 mb-3">
               <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                 <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
@@ -150,7 +164,10 @@ export default function Register() {
             <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Create your account</h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm">
               Already have one?{" "}
-              <span onClick={() => navigate("/login")} className="text-blue-600 dark:text-blue-400 font-semibold cursor-pointer hover:underline">Sign in</span>
+              <span onClick={() => navigate("/login")}
+                className="text-blue-600 dark:text-blue-400 font-semibold cursor-pointer hover:underline">
+                Sign in
+              </span>
             </p>
           </div>
 
@@ -170,11 +187,13 @@ export default function Register() {
 
           {/* STEP INDICATOR */}
           <div className="flex items-center gap-2 mb-8">
-            {[1, 2].map(s => (
+            {[1,2].map(s => (
               <React.Fragment key={s}>
                 <div className={`flex items-center gap-2 ${s <= step ? "opacity-100" : "opacity-40"}`}>
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    s < step ? "bg-green-500 text-white" : s === step ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-500"
+                    s < step  ? "bg-green-500 text-white" :
+                    s === step ? "bg-blue-600 text-white"  :
+                    "bg-gray-200 dark:bg-gray-700 text-gray-500"
                   }`}>
                     {s < step ? "✓" : s}
                   </div>
@@ -187,30 +206,35 @@ export default function Register() {
             ))}
           </div>
 
-          {/* STEP 1 — autoComplete off so browser doesn't fill old data */}
+          {/* STEP 1 */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Full Name</label>
-                <input name="name" autoComplete="off" placeholder="Ramya Sri Bojja" value={form.name} onChange={handleChange} className={inp} />
+                <input name="name" autoComplete="off" placeholder="Ramya Sri Bojja"
+                  value={form.name} onChange={handleChange} className={inp} />
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">College Email</label>
-                <input name="email" type="email" autoComplete="off" placeholder="you@iith.ac.in" value={form.email} onChange={handleChange} className={inp} />
+                <input name="email" type="email" autoComplete="off" placeholder="you@iith.ac.in"
+                  value={form.email} onChange={handleChange} className={inp} />
                 {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Password</label>
-                <input name="password" type="password" autoComplete="new-password" placeholder="Min. 8 characters" value={form.password} onChange={handleChange} className={inp} />
+                <input name="password" type="password" autoComplete="new-password" placeholder="Min. 8 characters"
+                  value={form.password} onChange={handleChange} className={inp} />
                 {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Confirm Password</label>
-                <input name="confirmPassword" type="password" autoComplete="new-password" placeholder="Repeat your password" value={form.confirmPassword} onChange={handleChange} className={inp} />
+                <input name="confirmPassword" type="password" autoComplete="new-password" placeholder="Repeat your password"
+                  value={form.confirmPassword} onChange={handleChange} className={inp} />
                 {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
               </div>
-              <button onClick={nextStep} className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition hover:scale-[1.02] mt-2">
+              <button onClick={nextStep}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition hover:scale-[1.02] mt-2">
                 Continue →
               </button>
             </div>
@@ -221,13 +245,15 @@ export default function Register() {
             <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">College Name</label>
-                <input name="college" autoComplete="off" placeholder="IIT Hyderabad" value={form.college} onChange={handleChange} className={inp} />
+                <input name="college" autoComplete="off" placeholder="IIT Hyderabad"
+                  value={form.college} onChange={handleChange} className={inp} />
                 {errors.college && <p className="text-red-500 text-xs mt-1">{errors.college}</p>}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Branch</label>
-                  <input name="branch" autoComplete="off" placeholder="CSE" value={form.branch} onChange={handleChange} className={inp} />
+                  <input name="branch" autoComplete="off" placeholder="CSE"
+                    value={form.branch} onChange={handleChange} className={inp} />
                   {errors.branch && <p className="text-red-500 text-xs mt-1">{errors.branch}</p>}
                 </div>
                 <div>
@@ -244,7 +270,8 @@ export default function Register() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Phone Number</label>
-                <input name="phone" autoComplete="off" placeholder="+91 98765 43210" value={form.phone} onChange={handleChange} className={inp} />
+                <input name="phone" autoComplete="off" placeholder="+91 98765 43210"
+                  value={form.phone} onChange={handleChange} className={inp} />
                 {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
               </div>
               <div className="flex gap-3 mt-2">

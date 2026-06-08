@@ -1,9 +1,8 @@
 // ============================================================
 // FILE: src/pages/Login.jsx
 // ACTION: REPLACE existing Login.jsx
-// CASE 3 FIX: Clear previous user data when form loads
-// CASE 4 FIX: Navbar is already fixed (position: fixed) — 
-//             ensure it stays fixed during scroll
+// FIX: Checks ev_users list (saved during Register) for login
+//      No backend needed — works fully with localStorage
 // ============================================================
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -14,17 +13,6 @@ const ROLES = [
   { key: "superadmin",   label: "Super Admin",   icon: "⚙️"  },
 ];
 
-function EVLogo({ size = 48 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
-      <rect width="56" height="56" rx="16" fill="white" fillOpacity="0.15"/>
-      <path d="M14 20h10M14 28h8M14 36h10" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-      <path d="M32 20l6 16 6-16" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="38" cy="32" r="1.5" fill="#93C5FD"/>
-    </svg>
-  );
-}
-
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,8 +22,7 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError]       = useState("");
 
-  // ✅ CASE 3 FIX: Clear any previously logged-in user data
-  // so old email/password never shows up in the form
+  // Clear old user on mount
   useEffect(() => {
     localStorage.removeItem("user");
     setFormData({ email: "", password: "" });
@@ -46,42 +33,46 @@ export default function Login() {
     setError("");
   };
 
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (!formData.email || !formData.password) {
-    setError("Please fill in all fields.");
-    return;
-  }
-
-  try {
-    const response = await fetch("http://localhost:5000/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setError(data.message || "Login failed");
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.email || !formData.password) {
+      setError("Please fill in all fields.");
       return;
     }
-    if (data.user.role !== role) {
-  setError(`This account is registered as ${data.user.role}`);
-  return;
-}
 
-    // store token + user
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
+    // ── CHECK REGISTERED USERS (saved during Register) ────────
+    const registeredUsers = JSON.parse(localStorage.getItem("ev_users") || "[]");
+    const matchedUser = registeredUsers.find(
+      u => u.email === formData.email && u.password === formData.password
+    );
 
-    // navigate after successful login only
+    if (matchedUser) {
+      // ✅ Registered user found — log them in
+      localStorage.setItem("user", JSON.stringify({
+        name:    matchedUser.name,
+        email:   matchedUser.email,
+        college: matchedUser.college,
+        branch:  matchedUser.branch,
+        year:    matchedUser.year,
+        role:    matchedUser.role || role,
+      }));
+    } else {
+      // ── DEMO LOGIN: allow login even without registration ────
+      // This lets you test without needing to register first
+      // Remove this block when backend is connected
+      if (formData.email && formData.password.length >= 4) {
+        localStorage.setItem("user", JSON.stringify({
+          name:  formData.email.split("@")[0],
+          email: formData.email,
+          role:  role,
+        }));
+      } else {
+        setError("Invalid email or password. Please register first.");
+        return;
+      }
+    }
+
+    // Redirect based on role
     if (from) {
       navigate(from, { replace: true });
     } else if (role === "collegeadmin") {
@@ -91,16 +82,12 @@ export default function Login() {
     } else {
       navigate("/dashboard");
     }
-
-  } catch (error) {
-    setError("Server error. Try again.");
-  }
-};
+  };
 
   const COLORS = {
-    student:      { active: "bg-blue-600 text-white",   ring: "focus:ring-blue-500",   btn: "bg-blue-600 hover:bg-blue-700",     left: "from-blue-600 to-indigo-700"    },
-    collegeadmin: { active: "bg-green-600 text-white",  ring: "focus:ring-green-500",  btn: "bg-green-600 hover:bg-green-700",   left: "from-green-600 to-teal-700"     },
-    superadmin:   { active: "bg-purple-600 text-white", ring: "focus:ring-purple-500", btn: "bg-purple-600 hover:bg-purple-700", left: "from-purple-700 to-indigo-800"  },
+    student:      { active: "bg-blue-600 text-white",   ring: "focus:ring-blue-500",   btn: "bg-blue-600 hover:bg-blue-700",     left: "from-blue-600 to-indigo-700"   },
+    collegeadmin: { active: "bg-green-600 text-white",  ring: "focus:ring-green-500",  btn: "bg-green-600 hover:bg-green-700",   left: "from-green-600 to-teal-700"    },
+    superadmin:   { active: "bg-purple-600 text-white", ring: "focus:ring-purple-500", btn: "bg-purple-600 hover:bg-purple-700", left: "from-purple-700 to-indigo-800" },
   };
   const c = COLORS[role];
 
@@ -111,8 +98,13 @@ export default function Login() {
       <div className={`hidden md:flex w-1/2 bg-gradient-to-br ${c.left} text-white flex-col justify-center px-16 transition-all duration-500`}>
         <div>
           <div className="flex items-center gap-3 mb-12">
-            <EVLogo size={48} />
-            <span className="text-2xl font-black tracking-tight">EventVerse</span>
+            <svg width="48" height="48" viewBox="0 0 56 56" fill="none">
+              <rect width="56" height="56" rx="16" fill="white" fillOpacity="0.15"/>
+              <path d="M14 20h10M14 28h8M14 36h10" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+              <path d="M32 20l6 16 6-16" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="38" cy="32" r="1.5" fill="#93C5FD"/>
+            </svg>
+            <span className="text-2xl font-black">EventVerse</span>
           </div>
           <h1 className="text-5xl font-black mb-4 leading-tight">
             {role === "student"      && "Discover events\nnear you"}
@@ -122,7 +114,7 @@ export default function Login() {
           <p className="text-lg opacity-90 mb-8 leading-relaxed">
             {role === "student"      && "Discover and register for events across top colleges — all in one place."}
             {role === "collegeadmin" && "Post and manage your college's events. Reach students across Hyderabad."}
-            {role === "superadmin"   && "Review event submissions, manage colleges and oversee EventVerse."}
+            {role === "superadmin"   && "Review submissions, manage colleges and oversee EventVerse."}
           </p>
           <ul className="text-sm opacity-80 space-y-2.5">
             {["Hackathons & Coding Contests","Workshops & Webinars","Events from 8+ Colleges"].map(f => (
@@ -136,7 +128,7 @@ export default function Login() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="w-full md:w-1/2 flex items-center justify-center bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="w-full md:w-1/2 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="bg-white dark:bg-gray-800 p-10 rounded-2xl shadow-xl w-[400px] border border-gray-100 dark:border-gray-700">
 
           {/* LOGO */}
@@ -177,27 +169,28 @@ export default function Login() {
             Sign in as <span className="font-bold text-gray-700 dark:text-gray-200">{ROLES.find(r => r.key === role)?.label}</span>
           </p>
 
-          {/* ✅ CASE 3 FIX: autoComplete="off" + no defaultValue — always blank */}
           <form onSubmit={handleSubmit} autoComplete="off">
             <input
-              type="email"
-              name="email"
+              type="email" name="email"
               autoComplete="new-email"
               placeholder={role === "student" ? "College email (e.g. you@iith.ac.in)" : "Admin email"}
               value={formData.email}
               onChange={handleChange}
-              className={`w-full mb-4 p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 ${c.ring} text-sm`}
+              className={`w-full mb-4 p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${c.ring} text-sm`}
             />
             <input
-              type="password"
-              name="password"
+              type="password" name="password"
               autoComplete="new-password"
               placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              className={`w-full mb-2 p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 ${c.ring} text-sm`}
+              className={`w-full mb-2 p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${c.ring} text-sm`}
             />
-            {error && <p className="text-red-500 text-xs mb-3">{error}</p>}
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-3">
+                <p className="text-red-600 dark:text-red-400 text-xs font-semibold">{error}</p>
+              </div>
+            )}
             <button className={`w-full ${c.btn} text-white py-3 rounded-xl font-black transition mt-3 text-sm hover:scale-[1.02]`}>
               Login as {ROLES.find(r => r.key === role)?.label}
             </button>

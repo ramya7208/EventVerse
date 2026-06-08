@@ -1,3 +1,36 @@
+/* ============================================================
+   FILE: src/index.css
+   ACTION: REPLACE existing index.css
+   CASE 4 FIX: Navbar is fixed — body needs top padding so
+               content doesn't hide behind navbar
+   ============================================================ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Ensure content always starts BELOW the fixed navbar */
+body {
+  padding-top: 0; /* padding handled by pt-20 on the main div in App.js */
+  overflow-x: hidden;
+}
+
+/* Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar on college chip rows but keep functionality */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Custom selection color */
+::selection {
+  background-color: #2563eb;
+  color: white;
+}
+
+/* Prevent horizontal overflow globally */
+* {
+  box-sizing: border-box;
+}
